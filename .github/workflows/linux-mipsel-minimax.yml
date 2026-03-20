@@ -1,5 +1,111 @@
 name: linux-mipsel-minimax
 on:
+  workflow_dispatch:
+    inputs:
+      disable_rtti:
+        description: 'Disable C++ RTTI'
+        required: false
+        default: 'ON'
+        type: choice
+        options:
+          - 'ON'
+          - 'OFF'
+      disable_exception:
+        description: 'Disable C++ exceptions'
+        required: false
+        default: 'ON'
+        type: choice
+        options:
+          - 'ON'
+          - 'OFF'
+      vulkan:
+        description: 'Enable Vulkan support'
+        required: false
+        default: 'OFF'
+        type: choice
+        options:
+          - 'ON'
+          - 'OFF'
+      stdio:
+        description: 'Enable NCNN_STDIO'
+        required: false
+        default: 'OFF'
+        type: choice
+        options:
+          - 'ON'
+          - 'OFF'
+      string:
+        description: 'Enable NCNN_STRING'
+        required: false
+        default: 'OFF'
+        type: choice
+        options:
+          - 'ON'
+          - 'OFF'
+      bf16:
+        description: 'Enable NCNN_BF16'
+        required: false
+        default: 'OFF'
+        type: choice
+        options:
+          - 'ON'
+          - 'OFF'
+      int8:
+        description: 'Enable NCNN_INT8'
+        required: false
+        default: 'OFF'
+        type: choice
+        options:
+          - 'ON'
+          - 'OFF'
+      pixel_drawing:
+        description: 'Enable pixel drawing functions'
+        required: false
+        default: 'OFF'
+        type: choice
+        options:
+          - 'ON'
+          - 'OFF'
+      pixel_rotate:
+        description: 'Enable pixel rotate functions'
+        required: false
+        default: 'OFF'
+        type: choice
+        options:
+          - 'ON'
+          - 'OFF'
+      pixel_affine:
+        description: 'Enable pixel affine functions'
+        required: false
+        default: 'OFF'
+        type: choice
+        options:
+          - 'ON'
+          - 'OFF'
+      pixel:
+        description: 'Enable pixel functions'
+        required: false
+        default: 'OFF'
+        type: choice
+        options:
+          - 'ON'
+          - 'OFF'
+      openmp:
+        description: 'Enable OpenMP'
+        required: false
+        default: 'OFF'
+        type: choice
+        options:
+          - 'ON'
+          - 'OFF'
+      simplestl:
+        description: 'Use simpleSTL instead of compiler STL'
+        required: false
+        default: 'ON'
+        type: choice
+        options:
+          - 'ON'
+          - 'OFF'
   push:
     branches: [master]
     paths:
@@ -66,7 +172,24 @@ jobs:
     - name: build
       run: |
         mkdir build && cd build
-        cmake -DCMAKE_TOOLCHAIN_FILE=../toolchains/mipsel-linux-gnu.toolchain.cmake -DNCNN_BUILD_TOOLS=OFF -DNCNN_BUILD_EXAMPLES=OFF -DNCNN_BUILD_TESTS=ON ..
+        cmake -DCMAKE_TOOLCHAIN_FILE=../toolchains/mipsel-linux-gnu.toolchain.cmake \
+          -DNCNN_BUILD_TOOLS=OFF \
+          -DNCNN_BUILD_EXAMPLES=OFF \
+          -DNCNN_BUILD_TESTS=ON \
+          -DNCNN_DISABLE_RTTI=${{ inputs.disable_rtti || 'ON' }} \
+          -DNCNN_DISABLE_EXCEPTION=${{ inputs.disable_exception || 'ON' }} \
+          -DNCNN_VULKAN=${{ inputs.vulkan || 'OFF' }} \
+          -DNCNN_STDIO=${{ inputs.stdio || 'OFF' }} \
+          -DNCNN_STRING=${{ inputs.string || 'OFF' }} \
+          -DNCNN_BF16=${{ inputs.bf16 || 'OFF' }} \
+          -DNCNN_INT8=${{ inputs.int8 || 'OFF' }} \
+          -DNCNN_PIXEL_DRAWING=${{ inputs.pixel_drawing || 'OFF' }} \
+          -DNCNN_PIXEL_ROTATE=${{ inputs.pixel_rotate || 'OFF' }} \
+          -DNCNN_PIXEL_AFFINE=${{ inputs.pixel_affine || 'OFF' }} \
+          -DNCNN_PIXEL=${{ inputs.pixel || 'OFF' }} \
+          -DNCNN_OPENMP=${{ inputs.openmp || 'OFF' }} \
+          -DNCNN_SIMPLESTL=${{ inputs.simplestl || 'ON' }} \
+          ..
         cmake --build . -j $(nproc)
         make install
 
