@@ -1,0 +1,88 @@
+name: linux-mipsel-minimax
+on:
+  push:
+    branches: [master]
+    paths:
+    - '.github/workflows/linux-mipsel-minimax.yml'
+    - 'toolchains/mipsel-linux-gnu.toolchain.cmake'
+    - 'CMakeLists.txt'
+    - 'cmake/**'
+    - 'src/*'
+    - 'src/layer/*'
+    - 'src/layer/mips/**'
+    - 'tests/**'
+  pull_request:
+    branches: [master]
+    paths:
+    - '.github/workflows/linux-mipsel-minimax.yml'
+    - 'toolchains/mipsel-linux-gnu.toolchain.cmake'
+    - 'CMakeLists.txt'
+    - 'cmake/**'
+    - 'src/*'
+    - 'src/layer/*'
+    - 'src/layer/mips/**'
+    - 'tests/**'
+concurrency:
+  group: linux-mipsel-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+
+jobs:
+  mipsel:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: mipsel-gnu-toolchain
+      run: |
+        sudo apt-get update
+        sudo apt-get install g++-mipsel-linux-gnu qemu-user-static
+        
+    - name: Install MIPS cross-compiler
+      run: |
+        mkdir temp
+        cd temp
+        wget --progress=dot https://github.com/themactep/thingino-firmware/releases/download/toolchain-x86_64/thingino-toolchain-x86_64_xburst1_4_4_musl_gcc14-linux-mipsel.tar.gz 
+        tar -xzf thingino-toolchain-x86_64_xburst1_4_4_musl_gcc14-linux-mipsel.tar.gz
+        mv mipsel-thingino-linux-musl_sdk-buildroot /tmp/
+        ls -ltr /tmp/mipsel-thingino-linux-musl_sdk-buildroot/
+        ls -ltr /tmp/mipsel-thingino-linux-musl_sdk-buildroot/bin/
+        /tmp/mipsel-thingino-linux-musl_sdk-buildroot/relocate-sdk.sh
+        echo "/tmp/mipsel-thingino-linux-musl_sdk-buildroot/bin" >> $GITHUB_PATH
+        echo "TOOLCHAIN_DIR=/tmp/mipsel-thingino-linux-musl_sdk-buildroot" >> $GITHUB_ENV
+        echo "PATH=${TOOLCHAIN_DIR}/bin:$PATH" >> $GITHUB_ENV
+        cd ../
+        rm -rf temp
+
+    - name: Configure CMake
+      run: |
+        cd $GITHUB_WORKSPACE
+        # update ../toolchains/mipsel-linux-gnu.toolchain.cmake
+        sed -i 's/mipsel-linux-gnu-gcc/mipsel-thingino-linux-musl-gcc/' ./toolchains/mipsel-linux-gnu.toolchain.cmake
+        sed -i 's/mipsel-linux-gnu-g++/mipsel-thingino-linux-musl-g++/' ./toolchains/mipsel-linux-gnu.toolchain.cmake
+        cat ./toolchains/mipsel-linux-gnu.toolchain.cmake
+
+    - name: build
+      run: |
+        mkdir build && cd build
+        cmake -DCMAKE_TOOLCHAIN_FILE=../toolchains/mipsel-linux-gnu.toolchain.cmake -DNCNN_BUILD_TOOLS=OFF -DNCNN_BUILD_EXAMPLES=OFF -DNCNN_BUILD_TESTS=ON ..
+        cmake --build . -j $(nproc)
+        make install
+
+    - name:  test and strip binaries
+      run: |
+        cd build
+        # TESTS_EXECUTABLE_LOADER=qemu-mipsel-static TESTS_EXECUTABLE_LOADER_ARGUMENTS="-L;/usr/mipsel-linux-gnu" ctest --output-on-failure -j $(nproc)
+        
+        UPDATE_FW_DATETIME=$(TZ=Asia/Shanghai date +'%Y-%m-%d-%H-%M')
+        echo "UPDATE_FW_DATETIME=${UPDATE_FW_DATETIME}" >> ${GITHUB_ENV}
+        cd $GITHUB_WORKSPACE
+
+    - name:  Upload build artifacts
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ncnn-mipsel-${{ env.UPDATE_FW_DATETIME }}
+        path: build/
+        retention-days: 7
