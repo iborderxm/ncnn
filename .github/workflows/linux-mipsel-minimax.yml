@@ -1,6 +1,21 @@
 name: linux-mipsel-minimax
 on:
   workflow_dispatch:
+    # | 参数 | 描述 | 默认值 |
+    # |------|------|--------|
+    # | `disable_rtti` | 禁用 C++ RTTI | ON |
+    # | `disable_exception` | 禁用 C++ 异常 | ON |
+    # | `vulkan` | 启用 Vulkan 支持 | OFF |
+    # | `stdio` | 启用 NCNN_STDIO | OFF |
+    # | `string` | 启用 NCNN_STRING | OFF |
+    # | `bf16` | 启用 NCNN_BF16 | OFF |
+    # | `int8` | 启用 NCNN_INT8 | ON |
+    # | `pixel_drawing` | 启用像素绘制函数 | OFF |
+    # | `pixel_rotate` | 启用像素旋转函数 | OFF |
+    # | `pixel_affine` | 启用像素仿射函数 | OFF |
+    # | `pixel` | 启用像素函数 | OFF |
+    # | `openmp` | 启用 OpenMP | OFF |
+    # | `simplestl` | 使用 simpleSTL 替代编译器 STL | OFF |
     inputs:
       disable_rtti:
         description: 'Disable C++ RTTI'
@@ -53,7 +68,7 @@ on:
       int8:
         description: 'Enable NCNN_INT8'
         required: false
-        default: 'OFF'
+        default: 'ON'
         type: choice
         options:
           - 'ON'
@@ -101,7 +116,7 @@ on:
       simplestl:
         description: 'Use simpleSTL instead of compiler STL'
         required: false
-        default: 'ON'
+        default: 'OFF'
         type: choice
         options:
           - 'ON'
@@ -175,20 +190,20 @@ jobs:
         cmake -DCMAKE_TOOLCHAIN_FILE=../toolchains/mipsel-linux-gnu.toolchain.cmake \
           -DNCNN_BUILD_TOOLS=OFF \
           -DNCNN_BUILD_EXAMPLES=OFF \
-          -DNCNN_BUILD_TESTS=ON \
+          -DNCNN_BUILD_TESTS=OFF \
           -DNCNN_DISABLE_RTTI=${{ inputs.disable_rtti || 'ON' }} \
           -DNCNN_DISABLE_EXCEPTION=${{ inputs.disable_exception || 'ON' }} \
           -DNCNN_VULKAN=${{ inputs.vulkan || 'OFF' }} \
           -DNCNN_STDIO=${{ inputs.stdio || 'OFF' }} \
           -DNCNN_STRING=${{ inputs.string || 'OFF' }} \
           -DNCNN_BF16=${{ inputs.bf16 || 'OFF' }} \
-          -DNCNN_INT8=${{ inputs.int8 || 'OFF' }} \
+          -DNCNN_INT8=${{ inputs.int8 || 'ON' }} \
           -DNCNN_PIXEL_DRAWING=${{ inputs.pixel_drawing || 'OFF' }} \
           -DNCNN_PIXEL_ROTATE=${{ inputs.pixel_rotate || 'OFF' }} \
           -DNCNN_PIXEL_AFFINE=${{ inputs.pixel_affine || 'OFF' }} \
           -DNCNN_PIXEL=${{ inputs.pixel || 'OFF' }} \
           -DNCNN_OPENMP=${{ inputs.openmp || 'OFF' }} \
-          -DNCNN_SIMPLESTL=${{ inputs.simplestl || 'ON' }} \
+          -DNCNN_SIMPLESTL=${{ inputs.simplestl || 'OFF' }} \
           ..
         cmake --build . -j $(nproc)
         make install
